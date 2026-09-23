@@ -56,4 +56,28 @@ if st.button("توليد وصف للمنتج بالذكاء الاصطناعي �
 st.divider()
 
 st.subheader("📦 ملاحظة الشحن المباشر (Blind Dropshipping)")
-st.info("We are dropshipping. Do NOT include any invoices, promo materials, or brand logos in the package.")
+st.info("We are dropshipping. Do NOT include any invoices, promo materials, or brand logos in the package.")import streamlit as st
+from supabase import create_client, Client
+
+url: str = st.secrets["supabase_url"]
+key: str = st.secrets["supabase_key"]
+
+supabase: Client = create_client(url, key)
+
+st.header("🔌 اختبار الاتصال مع Supabase")
+
+def test_connection():
+    try:
+        response = supabase.table("products").select("*").limit(1).execute()
+        return True, response
+    except Exception as e:
+        return False, str(e)
+
+success, result = test_connection()
+
+if success:
+    st.success("✔ الاتصال مع Supabase يعمل بنجاح!")
+    st.write(result)
+else:
+    st.error("❌ فشل الاتصال مع Supabase")
+    st.write(result)
