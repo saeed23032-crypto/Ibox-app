@@ -56,7 +56,11 @@ if st.button("توليد وصف للمنتج بالذكاء الاصطناعي �
 st.divider()
 
 st.subheader("📦 ملاحظة الشحن المباشر (Blind Dropshipping)")
-st.info("We are dropshipping. Do NOT include any invoices, promo materials, or brand logos in the package.")import streamlit as st
+st.info("We are dropshipping. Do not include any invoices, promo materials, or brand logos in the package.")
+
+import streamlit as st
+from supabase import create_client, Client
+
 from supabase import create_client, Client
 
 url: str = st.secrets["supabase_url"]
