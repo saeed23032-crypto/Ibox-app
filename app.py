@@ -26,20 +26,30 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------
-# 📂 Sidebar للتنقل بين الصفحات
-# -----------------------------
-st.sidebar.title("📂 قائمة التنقل")
-page = st.sidebar.selectbox(
-    "اختر الصفحة",
-    ["الرئيسية", "التسعير", "الوصف", "الشحن", "اختبار الاتصال"]
-)
-
-# -----------------------------
 # 🔗 إعداد Supabase
 # -----------------------------
 url: str = st.secrets["supabase_url"]
 key: str = st.secrets["supabase_key"]
 supabase: Client = create_client(url, key)
+
+# -----------------------------
+# 📂 Sidebar للتنقل بين الصفحات
+# -----------------------------
+st.sidebar.title("📂 قائمة التنقل")
+page = st.sidebar.selectbox(
+    "اختر الصفحة",
+    [
+        "الرئيسية",
+        "التسعير",
+        "الوصف",
+        "الشحن",
+        "اختبار الاتصال",
+        "عرض المنتجات",
+        "تسجيل الدخول",
+        "الطلبات",
+        "لوحة التحكم"
+    ]
+)
 
 # -----------------------------
 # 🏠 الصفحة الرئيسية
@@ -67,6 +77,17 @@ elif page == "التسعير":
         st.metric("إجمالي التكلفة", f"${total_cost:.2f}")
         st.metric("السعر النهائي", f"${final_price:.2f}")
         st.metric("صافي الربح", f"${net_profit:.2f}")
+
+    # زر حفظ المنتج في Supabase
+    if st.button("💾 حفظ المنتج في قاعدة البيانات"):
+        supabase.table("products").insert({
+            "name": product_name,
+            "supplier_price": supplier_price,
+            "shipping_cost": shipping_cost,
+            "profit_margin": profit_margin,
+            "final_price": final_price
+        }).execute()
+        st.success("تم حفظ المنتج بنجاح!")
 
 # -----------------------------
 # 📝 صفحة الوصف التسويقي
@@ -118,3 +139,70 @@ elif page == "اختبار الاتصال":
         else:
             st.error("فشل الاتصال")
             st.write(result)
+
+# -----------------------------
+# 📦 صفحة عرض المنتجات
+# -----------------------------
+elif page == "عرض المنتجات":
+    st.header("📦 المنتجات المحفوظة")
+
+    data = supabase.table("products").select("*").execute()
+
+    if data.data:
+        st.table(data.data)
+    else:
+        st.info("لا توجد منتجات محفوظة بعد.")
+
+# -----------------------------
+# 🔐 صفحة تسجيل الدخول
+# -----------------------------
+elif page == "تسجيل الدخول":
+    st.header("🔐 تسجيل الدخول")
+
+    email = st.text_input("البريد الإلكتروني")
+    password = st.text_input("كلمة المرور", type="password")
+
+    if st.button("تسجيل الدخول"):
+        try:
+            user = supabase.auth.sign_in_with_password({"email": email, "password": password})
+            st.success("تم تسجيل الدخول بنجاح!")
+            st.json(user)
+        except Exception as e:
+            st.error("فشل تسجيل الدخول")
+            st.write(e)
+
+# -----------------------------
+# 📬 صفحة الطلبات
+# -----------------------------
+elif page == "الطلبات":
+    st.header("📬 إدارة الطلبات")
+
+    customer_name = st.text_input("اسم العميل")
+    product_name = st.text_input("اسم المنتج")
+    status = st.selectbox("حالة الطلب", ["جديد", "قيد التجهيز", "مكتمل"])
+
+    if st.button("حفظ الطلب"):
+        supabase.table("orders").insert({
+            "customer_name": customer_name,
+            "product_name": product_name,
+            "status": status
+        }).execute()
+        st.success("تم حفظ الطلب بنجاح!")
+
+    st.divider()
+    st.subheader("📄 جميع الطلبات")
+
+    orders = supabase.table("orders").select("*").execute()
+    st.table(orders.data)
+
+# -----------------------------
+# 📊 لوحة التحكم
+# -----------------------------
+elif page == "لوحة التحكم":
+    st.header("📊 لوحة التحكم")
+
+    products = supabase.table("products").select("*").execute()
+    orders = supabase.table("orders").select("*").execute()
+
+    st.metric("عدد المنتجات", len(products.data))
+    st.metric("عدد الطلبات", len(orders.data))
