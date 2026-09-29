@@ -32,7 +32,7 @@ st.markdown("""
 # 🔗 إعداد Supabase
 # -----------------------------
 url: str = st.secrets["supabase_url"]
-key: str = "sb_publishable_Xx0gFPF5aihujk6j82oJWA_NGO_6G6n"
+key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwaGJobWJvZmpwbHVraHVubnJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNjcwMzAsImV4cCI6MjEwNTc0MzAzMH0.83gUPiAHXa4avFuPTt6sVhngF_M6r31zQ0fJjLo-4aY"
 supabase: Client = create_client(url, key)
 
 # -----------------------------
