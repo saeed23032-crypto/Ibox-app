@@ -338,7 +338,7 @@ elif page == "تقارير الأرباح":
         st.table(products.data)
     else:
         st.info("لا توجد بيانات منتجات كافية لعرض التقارير حالياً.")
-   # -----------------------------
+# -----------------------------
 # 📥 صفحة إضافة منتج تلقائي متقدم
 # -----------------------------
 elif page == "إضافة منتج تلقائي":
@@ -357,10 +357,12 @@ elif page == "إضافة منتج تلقائي":
                     res = requests.get(product_url, headers=headers)
                     soup = BeautifulSoup(res.content, "html.parser")
 
-                    # استخراج عنوان المنتج
+                    # استخراج عنوان المنتج والصورة
                     title = soup.find("h1").get_text(strip=True) if soup.find("h1") else "منتج جديد"
+                    img_tag = soup.find("img")
+                    img_url = img_tag["src"] if img_tag and "src" in img_tag.attrs else ""
                     
-                    # حفظ المنتج ببياناته الأساسية في Supabase
+                    # حفظ المنتج مع رابط الصورة في Supabase
                     supabase.table("products").insert({
                         "name": title,
                         "supplier_price": 10.0,
@@ -368,10 +370,13 @@ elif page == "إضافة منتج تلقائي":
                         "profit_margin": 50.0,
                         "final_price": 18.0,
                         "net_profit": 6.0,
+                        "image_url": img_url,
                         "created_at": datetime.datetime.utcnow().isoformat()
                     }).execute()
 
-                    st.success(f"تم سحب المنتج وإضافته لقاعدة البيانات بنجاح: {title}")
+                    st.success(f"تم سحب المنتج وإضافته بنجاح: {title}")
+                    if img_url:
+                        st.image(img_url, width=200)
                 except Exception as e:
                     st.error(f"حدث خطأ أثناء السحب: {e}")
             else:
@@ -381,26 +386,23 @@ elif page == "إضافة منتج تلقائي":
         st.subheader("🔥 جلب أحدث المنتجات الرابحة فعلياً حسب القسم")
         category = st.selectbox("اختر القسم لمسح المنتجات الأكثر طلباً:", ["ملابس", "إلكترونيات", "أكسسوارات الهواتف", "منزل وديكور"])
         
-        # خريطة المنتجات الفعليه والجاهزة للبيع لكل قسم (Dynamic Catalog)
+        # قائمة المنتجات مع صورها
         category_products = {
             "ملابس": [
-                {"name": "قميص قطني عصري Oversized", "supplier_price": "$6.50", "suggested_sell_price": "$24.99", "orders": "18,400+ طلب", "status": "🔥 أكثر مبيعاً"},
-                {"name": "بنطال رياضي مريح Cargo Pants", "supplier_price": "$9.20", "suggested_sell_price": "$32.00", "orders": "11,200+ طلب", "status": "🚀 طلب مرتفع"},
-                {"name": "سترة شتوية مقاومة للماء Hooded Jacket", "supplier_price": "$15.00", "suggested_sell_price": "$49.99", "orders": "8,900+ طلب", "status": "⭐ تقييم ممتاز"}
+                {"name": "قميص قطني عصري Oversized", "supplier_price": "$6.50", "suggested_sell_price": "$24.99", "orders": "18,400+ طلب", "image_url": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400"},
+                {"name": "بنطال رياضي مريح Cargo Pants", "supplier_price": "$9.20", "suggested_sell_price": "$32.00", "orders": "11,200+ طلب", "image_url": "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400"},
+                {"name": "سترة شتوية مقاومة للماء Hooded Jacket", "supplier_price": "$15.00", "suggested_sell_price": "$49.99", "orders": "8,900+ طلب", "image_url": "https://images.unsplash.com/photo-1544441893-675973e31985?w=400"}
             ],
             "إلكترونيات": [
-                {"name": "ساعة ذكية مقاومة للماء Smart Watch Pro", "supplier_price": "$12.00", "suggested_sell_price": "$39.99", "orders": "34,000+ طلب", "status": "🔥 أكثر مبيعاً"},
-                {"name": "سماعات بلوتوث لاسلكية TWS Earbuds", "supplier_price": "$5.80", "suggested_sell_price": "$22.50", "orders": "50,000+ طلب", "status": "🚀 تريند عالمي"},
-                {"name": "مكبر صوت محمول Bluetooth Speaker", "supplier_price": "$8.50", "suggested_sell_price": "$29.90", "orders": "15,600+ طلب", "status": "⭐ ممتاز"}
+                {"name": "ساعة ذكية مقاومة للماء Smart Watch Pro", "supplier_price": "$12.00", "suggested_sell_price": "$39.99", "orders": "34,000+ طلب", "image_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400"},
+                {"name": "سماعات بلوتوث لاسلكية TWS Earbuds", "supplier_price": "$5.80", "suggested_sell_price": "$22.50", "orders": "50,000+ طلب", "image_url": "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400"}
             ],
             "أكسسوارات الهواتف": [
-                {"name": "غطاء هاتف فاخر متوافق مع MagSafe", "supplier_price": "$2.50", "suggested_sell_price": "$14.99", "orders": "42,100+ طلب", "status": "🔥 أكثر مبيعاً"},
-                {"name": "شاحن لاسلكي سريع 3 في 1", "supplier_price": "$9.00", "suggested_sell_price": "$34.99", "orders": "21,800+ طلب", "status": "🚀 تريند"},
-                {"name": "حامل هاتف مغناطيسي للسيارة", "supplier_price": "$1.80", "suggested_sell_price": "$11.99", "orders": "65,000+ طلب", "status": "🔥 أكثر مبيعاً"}
+                {"name": "غطاء هاتف فاخر متوافق مع MagSafe", "supplier_price": "$2.50", "suggested_sell_price": "$14.99", "orders": "42,100+ طلب", "image_url": "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400"},
+                {"name": "شاحن لاسلكي سريع 3 في 1", "supplier_price": "$9.00", "suggested_sell_price": "$34.99", "orders": "21,800+ طلب", "image_url": "https://images.unsplash.com/photo-1622445268465-842297d12213?w=400"}
             ],
             "منزل وديكور": [
-                {"name": "مصباح ليد ذكي RGB Ambient Light", "supplier_price": "$7.00", "suggested_sell_price": "$27.99", "orders": "19,300+ طلب", "status": "🚀 تريند"},
-                {"name": "موزع معطر جو كهربائي Essential Oil Diffuser", "supplier_price": "$6.20", "suggested_sell_price": "$23.50", "orders": "14,500+ طلب", "status": "⭐ مميز"}
+                {"name": "مصباح ليد ذكي RGB Ambient Light", "supplier_price": "$7.00", "suggested_sell_price": "$27.99", "orders": "19,300+ طلب", "image_url": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400"}
             ]
         }
 
@@ -408,16 +410,17 @@ elif page == "إضافة منتج تلقائي":
             selected_items = category_products.get(category, [])
             st.success(f"تم جلب أحدث المنتجات الرابحة الخاصة بقسم: {category}")
             
-            # عرض المنتجات كبطاقات تفاعلية مع إمكانية إضافة المنتج بنقرة واحدة
             for item in selected_items:
-                col1, col2, col3 = st.columns([3, 2, 1])
+                col_img, col1, col2, col3 = st.columns([1, 2, 2, 1])
+                with col_img:
+                    st.image(item['image_url'], width=90)
                 with col1:
-                    st.write(f"**{item['name']}** ({item['status']})")
-                    st.caption(f"عدد الطلبات: {item['orders']}")
+                    st.write(f"**{item['name']}**")
+                    st.caption(f"الطلبات: {item['orders']}")
                 with col2:
-                    st.write(f"سعر المورد: {item['supplier_price']} | البيع المقترح: **{item['suggested_sell_price']}**")
+                    st.write(f"المورد: {item['supplier_price']} | البيع: **{item['suggested_sell_price']}**")
                 with col3:
-                    if st.button(f"حفظ في متجري", key=item['name']):
+                    if st.button(f"حفظ", key=item['name']):
                         try:
                             price_num = float(item['suggested_sell_price'].replace('$', ''))
                             supp_num = float(item['supplier_price'].replace('$', ''))
@@ -426,9 +429,10 @@ elif page == "إضافة منتج تلقائي":
                                 "name": item['name'],
                                 "supplier_price": supp_num,
                                 "final_price": price_num,
+                                "image_url": item['image_url'],
                                 "created_at": datetime.datetime.utcnow().isoformat()
                             }).execute()
-                            st.toast(f"تم إضافة {item['name']} لمتجرك بنجاح!")
+                            st.toast(f"تم حفظ {item['name']} بمتجرك بنجاح!")
                         except Exception as e:
-                            st.error(f"خطأ في الحفظ: {e}")
+                            st.error(f"خطأ بالحفظ: {e}")
                 st.divider()
