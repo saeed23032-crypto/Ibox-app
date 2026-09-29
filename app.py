@@ -1,7 +1,8 @@
 import streamlit as st
 from supabase import create_client, Client
 import datetime
-
+import requests
+from bs4 import BeautifulSoup
 # -----------------------------
 # 🎨 تحسين شكل التطبيق (CSS)
 # -----------------------------
@@ -75,6 +76,7 @@ st.sidebar.title("📂 قائمة التنقل")
 page = st.sidebar.selectbox(
     "اختر الصفحة",
     [
+     "إضافة منتج تلقائي"
         "الرئيسية",
         "تسجيل الدخول",
         "التسعير",
@@ -348,3 +350,34 @@ elif page == "تقارير الأرباح":
         st.table(products.data)
     else:
         st.info("لا توجد بيانات منتجات كافية لعرض التقارير حالياً.")
+        # -----------------------------
+# 📥 صفحة إضافة منتج تلقائي عبر الرابط
+# -----------------------------
+elif page == "إضافة منتج تلقائي":
+    st.header("📥 سحب وإضافة منتج تلقائياً")
+    
+    product_url = st.text_input("أدخل رابط المنتج من المورد:")
+    
+    if st.button("سحب بيانات المنتج وتخزينه"):
+        if product_url:
+            try:
+                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+                response = requests.get(product_url, headers=headers)
+                soup = BeautifulSoup(response.content, "html.parser")
+
+                # جلب عنوان المنتج تلقائياً
+                title = soup.find("h1").get_text(strip=True) if soup.find("h1") else "منتج جديد"
+                
+                # حفظ البيانات في جدول المنتجات بـ Supabase
+                supabase.table("products").insert({
+                    "name": title,
+                    "supplier_price": 0.0,
+                    "final_price": 0.0,
+                    "created_at": datetime.datetime.utcnow().isoformat()
+                }).execute()
+                
+                st.success(f"تم سحب المنتج وإضافته بنجاح: {title}")
+            except Exception as e:
+                st.error(f"حدث خطأ أثناء السحب: {e}")
+        else:
+            st.warning("يرجى إدخال الرابط أولاً.")
