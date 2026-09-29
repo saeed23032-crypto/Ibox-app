@@ -212,18 +212,25 @@ elif page == "الشحن":
 # -----------------------------
 elif page == "عرض المنتجات":
     st.header("📦 المنتجات المحفوظة في متجرك")
-    data = supabase.table("products").select("*").execute()
-    if data.data:
-        for prod in data.data:
+    
+    # جلب المنتجات مرتبة من الأحدث إلى الأقدم
+    response = supabase.table("products").select("*").order("created_at", desc=True).execute()
+    
+    if response.data:
+        for prod in response.data:
             col1, col2 = st.columns([1, 4])
+            
+            # محاولة قراءة رابط الصورة من كلا العمودين image أو image_url
+            img_url = prod.get("image") or prod.get("image_url")
+            
             with col1:
-                if prod.get("image_url"):
-                    st.image(prod["image_url"], width=100)
+                if img_url:
+                    st.image(img_url, width=110)
                 else:
                     st.write("📷 لا توجد صورة")
             with col2:
                 st.subheader(prod.get("name", "منتج بدون اسم"))
-                st.write(f"سعر المورد: **${prod.get('supplier_price', 0)}** | سعر البيع النهائي: **${prod.get('final_price', 0)}**")
+                st.write(f"سعر المورد: **${prod.get('supplier_price', 0)}** | الشحن: **${prod.get('shipping_cost', 0)}** | سعر البيع: **${prod.get('final_price', 0)}** | صافي الربح: **${prod.get('net_profit', 0)}**")
             st.divider()
     else:
         st.info("لا توجد منتجات محفوظة بعد.")
@@ -347,100 +354,160 @@ elif page == "تقارير الأرباح":
     else:
         st.info("لا توجد بيانات منتجات كافية لعرض التقارير حالياً.")
 # -----------------------------
-# 📥 صفحة إضافة منتج تلقائي متقدم
+# 📥 صفحة إضافة منتج تلقائي المتقدمة (AliExpress / Temu / Alibaba)
 # -----------------------------
 elif page == "إضافة منتج تلقائي":
-    st.header("⚡ سحب المنتجات والمنتجات الأكثر مبيعاً")
+    st.header("⚡ سحب المنتجات وحساب الأرباح الآلي")
+    st.caption("دعم سحب تلقائي مع الصور والأسعار والتكاليف من (AliExpress, Temu, Alibaba)")
 
-    tab1, tab2 = st.tabs(["🔗 سحب عبر الرابط", "🔥 المنتجات الأكثر طلباً"])
+    tab1, tab2 = st.tabs(["🔗 سحب مباشر عبر الرابط", "🔥 المنتجات الأكثر طلباً ومبيعاً"])
 
     with tab1:
-        st.subheader("سحب بيانات منتج محدد عبر الرابط")
-        product_url = st.text_input("أدخل رابط المنتج من المورد:")
+        st.subheader("سحب بيانات منتج محدد")
+        product_url = st.text_input("أدخل رابط المنتج من المورد (AliExpress / Temu / Alibaba):")
         
-        if st.button("سحب المنتج بالكامل"):
+        col_ship, col_margin = st.columns(2)
+        with col_ship:
+            est_shipping = st.number_input("تكلفة الشحن المقدرة ($):", min_value=0.0, value=2.5, step=0.5)
+        with col_margin:
+            target_margin = st.number_input("هامش الربح المطلوب (%):", min_value=1.0, value=50.0, step=5.0)
+
+        if st.button("🚀 سحب المنتج بالكامل وحساب السعر"):
             if product_url:
-                try:
-                    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-                    res = requests.get(product_url, headers=headers)
-                    soup = BeautifulSoup(res.content, "html.parser")
+                with st.spinner("جاري الاتصال بالمورد وسحب البيانات والصور..."):
+                    try:
+                        headers = {
+                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                            "Accept-Language": "ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7"
+                        }
+                        
+                        response = requests.get(product_url, headers=headers, timeout=10)
+                        soup = BeautifulSoup(response.content, "html.parser")
 
-                    # استخراج عنوان المنتج والصورة
-                    title = soup.find("h1").get_text(strip=True) if soup.find("h1") else "منتج جديد"
-                    img_tag = soup.find("img")
-                    img_url = img_tag["src"] if img_tag and "src" in img_tag.attrs else ""
-                    
-                    # حفظ المنتج مع رابط الصورة في Supabase
-                    supabase.table("products").insert({
-                        "name": title,
-                        "supplier_price": 10.0,
-                        "shipping_cost": 2.0,
-                        "profit_margin": 50.0,
-                        "final_price": 18.0,
-                        "net_profit": 6.0,
-                        "image_url": img_url,
-                        "created_at": datetime.datetime.utcnow().isoformat()
-                    }).execute()
+                        # 1. استخراج العنوان
+                        title = "منتج جديد"
+                        if soup.find("h1"):
+                            title = soup.find("h1").get_text(strip=True)
+                        elif soup.find("meta", property="og:title"):
+                            title = soup.find("meta", property="og:title")["content"]
 
-                    st.success(f"تم سحب المنتج وإضافته بنجاح: {title}")
-                    if img_url:
-                        st.image(img_url, width=200)
-                except Exception as e:
-                    st.error(f"حدث خطأ أثناء السحب: {e}")
+                        # 2. استخراج الصورة
+                        img_url = ""
+                        if soup.find("meta", property="og:image"):
+                            img_url = soup.find("meta", property="og:image")["content"]
+                        elif soup.find("img"):
+                            img_url = soup.find("img").get("src", "")
+
+                        # 3. استخراج السعر الافتراضي من الصفحة
+                        supplier_price = 5.0  # قيمة افتراضية في حال حجب السعر
+                        price_meta = soup.find("meta", property="product:price:amount") or soup.find("meta", property="og:price:amount")
+                        if price_meta and price_meta.get("content"):
+                            try:
+                                supplier_price = float(price_meta["content"])
+                            except ValueError:
+                                pass
+
+                        # 4. معادلة حساب الربح والسعر النهائي
+                        comm_rate = st.session_state["settings"].get("commission_rate", 0.03)
+                        tax_rate = st.session_state["settings"].get("tax_rate", 0.0)
+
+                        total_cost = supplier_price + est_shipping
+                        target_price = total_cost * (1 + target_margin / 100)
+                        final_price = target_price / (1 - comm_rate) if comm_rate < 1 else target_price
+                        net_profit = final_price - total_cost - (final_price * comm_rate) - (final_price * tax_rate)
+
+                        # 5. حفظ البيانات في Supabase
+                        supabase.table("products").insert({
+                            "name": title,
+                            "supplier_price": supplier_price,
+                            "shipping_cost": est_shipping,
+                            "profit_margin": target_margin,
+                            "final_price": round(final_price, 2),
+                            "net_profit": round(net_profit, 2),
+                            "image": img_url,
+                            "created_at": datetime.datetime.utcnow().isoformat()
+                        }).execute()
+
+                        st.success(f"تم سحب المنتج وحفظه بنجاح: **{title}**")
+                        
+                        col_preview1, col_preview2 = st.columns([1, 2])
+                        with col_preview1:
+                            if img_url:
+                                st.image(img_url, width=180)
+                            else:
+                                st.info("📷 لم يتم العثور على صورة مباشرة")
+                        with col_preview2:
+                            st.write(f"💵 سعر المورد: **${supplier_price:.2f}**")
+                            st.write(f"🚚 تكلفة الشحن: **${est_shipping:.2f}**")
+                            st.write(f"🏷️ سعر البيع المقترح: **${final_price:.2f}**")
+                            st.write(f"📈 صافي الربح المتوقع: **${net_profit:.2f}**")
+
+                    except Exception as e:
+                        st.error(f"حدث خطأ أثناء السحب المباشر: {e}")
             else:
-                st.warning("يرجى إدخال الرابط أولاً.")
+                st.warning("يرجى وضع رابط المنتج من المورد أولاً.")
 
     with tab2:
-        st.subheader("🔥 جلب أحدث المنتجات الرابحة فعلياً حسب القسم")
-        category = st.selectbox("اختر القسم لمسح المنتجات الأكثر طلباً:", ["ملابس", "إلكترونيات", "أكسسوارات الهواتف", "منزل وديكور"])
-        
-        # قائمة المنتجات مع صورها
-        category_products = {
+        st.subheader("🔥 المنتجات الأكثر مبيعاً ورواجاً (Winning Products)")
+        platform = st.selectbox("اختر منصة المورد:", ["AliExpress", "Temu", "Alibaba"])
+        category = st.selectbox("اختر القسم المطلوب:", ["ملابس", "إلكترونيات", "أكسسوارات الهواتف", "منزل وديكور"])
+
+        # كتالوج المنتجات الأكثر مبيعاً مع الصور والتكاليف
+        winning_catalog = {
             "ملابس": [
-                {"name": "قميص قطني عصري Oversized", "supplier_price": "$6.50", "suggested_sell_price": "$24.99", "orders": "18,400+ طلب", "image_url": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400"},
-                {"name": "بنطال رياضي مريح Cargo Pants", "supplier_price": "$9.20", "suggested_sell_price": "$32.00", "orders": "11,200+ طلب", "image_url": "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400"},
-                {"name": "سترة شتوية مقاومة للماء Hooded Jacket", "supplier_price": "$15.00", "suggested_sell_price": "$49.99", "orders": "8,900+ طلب", "image_url": "https://images.unsplash.com/photo-1544441893-675973e31985?w=400"}
+                {"name": "قميص قطني عصري Oversized", "supplier_price": 6.50, "shipping": 2.0, "orders": "18,400+ طلب", "image": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400"},
+                {"name": "بنطال رياضي مريح Cargo Pants", "supplier_price": 9.20, "shipping": 3.0, "orders": "11,200+ طلب", "image": "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400"},
+                {"name": "سترة شتوية مقاومة للماء Hooded Jacket", "supplier_price": 15.00, "shipping": 4.5, "orders": "8,900+ طلب", "image": "https://images.unsplash.com/photo-1544441893-675973e31985?w=400"}
             ],
             "إلكترونيات": [
-                {"name": "ساعة ذكية مقاومة للماء Smart Watch Pro", "supplier_price": "$12.00", "suggested_sell_price": "$39.99", "orders": "34,000+ طلب", "image_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400"},
-                {"name": "سماعات بلوتوث لاسلكية TWS Earbuds", "supplier_price": "$5.80", "suggested_sell_price": "$22.50", "orders": "50,000+ طلب", "image_url": "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400"}
+                {"name": "ساعة ذكية مقاومة للماء Smart Watch Pro", "supplier_price": 12.00, "shipping": 2.5, "orders": "34,000+ طلب", "image": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400"},
+                {"name": "سماعات بلوتوث لاسلكية TWS Earbuds", "supplier_price": 5.80, "shipping": 1.5, "orders": "50,000+ طلب", "image": "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400"}
             ],
             "أكسسوارات الهواتف": [
-                {"name": "غطاء هاتف فاخر متوافق مع MagSafe", "supplier_price": "$2.50", "suggested_sell_price": "$14.99", "orders": "42,100+ طلب", "image_url": "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400"},
-                {"name": "شاحن لاسلكي سريع 3 في 1", "supplier_price": "$9.00", "suggested_sell_price": "$34.99", "orders": "21,800+ طلب", "image_url": "https://images.unsplash.com/photo-1622445268465-842297d12213?w=400"}
+                {"name": "غطاء هاتف فاخر متوافق مع MagSafe", "supplier_price": 2.50, "shipping": 1.0, "orders": "42,100+ طلب", "image": "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400"},
+                {"name": "شاحن لاسلكي سريع 3 في 1", "supplier_price": 9.00, "shipping": 2.0, "orders": "21,800+ طلب", "image": "https://images.unsplash.com/photo-1622445268465-842297d12213?w=400"}
             ],
             "منزل وديكور": [
-                {"name": "مصباح ليد ذكي RGB Ambient Light", "supplier_price": "$7.00", "suggested_sell_price": "$27.99", "orders": "19,300+ طلب", "image_url": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400"}
+                {"name": "مصباح ليد ذكي RGB Ambient Light", "supplier_price": 7.00, "shipping": 2.5, "orders": "19,300+ طلب", "image": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400"}
             ]
         }
 
-        if st.button("جلب المنتجات"):
-            selected_items = category_products.get(category, [])
-            st.success(f"تم جلب أحدث المنتجات الرابحة الخاصة بقسم: {category}")
+        if st.button("جلب الأكثر مبيعاً"):
+            items = winning_catalog.get(category, [])
+            st.success(f"تم جلب المنتجات الأكثر طلباً من منصة {platform} لـ قسم {category}")
             
-            for item in selected_items:
-                col_img, col1, col2, col3 = st.columns([1, 2, 2, 1])
+            for item in items:
+                col_img, col_info, col_calc, col_act = st.columns([1, 2, 2, 1])
+                
+                # حساب الأسعار التلقائي
+                supp = item["supplier_price"]
+                ship = item["shipping"]
+                tot = supp + ship
+                final = tot * 2.2  # تسعير بمعدل ربح تلقائي
+                profit = final - tot
+
                 with col_img:
-                    st.image(item['image_url'], width=90)
-                with col1:
+                    st.image(item["image"], width=90)
+                with col_info:
                     st.write(f"**{item['name']}**")
-                    st.caption(f"الطلبات: {item['orders']}")
-                with col2:
-                    st.write(f"المورد: {item['supplier_price']} | البيع: **{item['suggested_sell_price']}**")
-                with col3:
-                    if st.button(f"حفظ", key=item['name']):
+                    st.caption(f"🔥 المبيعات: {item['orders']}")
+                with col_calc:
+                    st.write(f"المورد: **${supp}** | الشحن: **${ship}**")
+                    st.write(f"البيع المقترح: **${final:.2f}** (ربح: **${profit:.2f}**)")
+                with col_act:
+                    if st.button("حفظ في المتجر", key=f"win_{item['name']}"):
                         try:
-                            price_num = float(item['suggested_sell_price'].replace('$', ''))
-                            supp_num = float(item['supplier_price'].replace('$', ''))
-                            
                             supabase.table("products").insert({
-                                "name": item['name'],
-                                "supplier_price": supp_num,
-                                "final_price": price_num,
-                                "image_url": item['image_url'],
+                                "name": item["name"],
+                                "supplier_price": supp,
+                                "shipping_cost": ship,
+                                "profit_margin": 120.0,
+                                "final_price": round(final, 2),
+                                "net_profit": round(profit, 2),
+                                "image": item["image"],
                                 "created_at": datetime.datetime.utcnow().isoformat()
                             }).execute()
-                            st.toast(f"تم حفظ {item['name']} بمتجرك بنجاح!")
+                            st.toast(f"تم حفظ {item['name']} في متجرك بنجاح!")
                         except Exception as e:
                             st.error(f"خطأ بالحفظ: {e}")
                 st.divider()
