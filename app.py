@@ -211,12 +211,20 @@ elif page == "الشحن":
 # 📦 صفحة عرض المنتجات
 # -----------------------------
 elif page == "عرض المنتجات":
-    st.header("📦 المنتجات المحفوظة")
-
+    st.header("📦 المنتجات المحفوظة في متجرك")
     data = supabase.table("products").select("*").execute()
-
     if data.data:
-        st.table(data.data)
+        for prod in data.data:
+            col1, col2 = st.columns([1, 4])
+            with col1:
+                if prod.get("image_url"):
+                    st.image(prod["image_url"], width=100)
+                else:
+                    st.write("📷 لا توجد صورة")
+            with col2:
+                st.subheader(prod.get("name", "منتج بدون اسم"))
+                st.write(f"سعر المورد: **${prod.get('supplier_price', 0)}** | سعر البيع النهائي: **${prod.get('final_price', 0)}**")
+            st.divider()
     else:
         st.info("لا توجد منتجات محفوظة بعد.")
 
