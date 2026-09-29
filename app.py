@@ -116,7 +116,7 @@ elif page == "إضافة منتج تلقائي":
             with col_calc:
                 st.write(f"سعر المورد: **${supp}** | الشحن: **${ship}**")
                 st.write(f"سعر البيع المقترح: **${final_price}** | الربح: **${net_profit}**")
-with col_act:
+            with col_act:
                 if st.button("📥 إضافة لمتجر Ibox", key=f"add_{item['name']}"):
                     try:
                         supabase.table("products").insert({
@@ -129,10 +129,11 @@ with col_act:
                             "image": item["image"],
                             "created_at": datetime.datetime.utcnow().isoformat()
                         }).execute()
-                        st.success(f"تم بنجاح حفظ {item['name']}!")
-                        st.rerun()  # <--- هذا السطر يقوم بتحديث التطبيق فوراً لعرض المنتج
+                        st.success(f"تم حفظ {item['name']} بنجاح!")
+                        st.rerun()
                     except Exception as e:
                         st.error(f"خطأ في التنزيل: {e}")
+            st.divider()
 
 # -----------------------------
 # ⚙️ إعدادات المتجر
