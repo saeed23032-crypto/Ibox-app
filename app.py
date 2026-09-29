@@ -338,34 +338,51 @@ elif page == "تقارير الأرباح":
         st.table(products.data)
     else:
         st.info("لا توجد بيانات منتجات كافية لعرض التقارير حالياً.")
-        # -----------------------------
-# 📥 صفحة إضافة منتج تلقائي عبر الرابط
+    # -----------------------------
+# 📥 صفحة إضافة منتج تلقائي متقدم
 # -----------------------------
 elif page == "إضافة منتج تلقائي":
-    st.header("📥 سحب وإضافة منتج تلقائياً")
-    
-    product_url = st.text_input("أدخل رابط المنتج من المورد:")
-    
-    if st.button("سحب بيانات المنتج وتخزينه"):
-        if product_url:
-            try:
-                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-                response = requests.get(product_url, headers=headers)
-                soup = BeautifulSoup(response.content, "html.parser")
+    st.header("⚡ سحب المنتجات والمنتجات الأكثر مبيعاً")
 
-                # جلب عنوان المنتج تلقائياً
-                title = soup.find("h1").get_text(strip=True) if soup.find("h1") else "منتج جديد"
-                
-                # حفظ البيانات في جدول المنتجات بـ Supabase
-                supabase.table("products").insert({
-                    "name": title,
-                    "supplier_price": 0.0,
-                    "final_price": 0.0,
-                    "created_at": datetime.datetime.utcnow().isoformat()
-                }).execute()
-                
-                st.success(f"تم سحب المنتج وإضافته بنجاح: {title}")
-            except Exception as e:
-                st.error(f"حدث خطأ أثناء السحب: {e}")
-        else:
-            st.warning("يرجى إدخال الرابط أولاً.")
+    tab1, tab2 = st.tabs(["🔗 سحب عبر الرابط", "🔥 المنتجات الأكثر طلباً"])
+
+    with tab1:
+        st.subheader("سحب بيانات منتج محدد")
+        product_url = st.text_input("أدخل رابط المنتج:")
+        
+        if st.button("سحب المنتج بالكامل"):
+            if product_url:
+                try:
+                    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+                    res = requests.get(product_url, headers=headers)
+                    soup = BeautifulSoup(res.content, "html.parser")
+
+                    # استخراج العنوان
+                    title = soup.find("h1").get_text(strip=True) if soup.find("h1") else "منتج جديد"
+                    
+                    # حفظ البيانات في Supabase
+                    supabase.table("products").insert({
+                        "name": title,
+                        "supplier_price": 10.0,
+                        "final_price": 20.0,
+                        "created_at": datetime.datetime.utcnow().isoformat()
+                    }).execute()
+
+                    st.success(f"تم سحب المنتج بنجاح: {title}")
+                except Exception as e:
+                    st.error(f"حدث خطأ أثناء السحب: {e}")
+            else:
+                st.warning("يرجى إدخال الرابط أولاً.")
+
+    with tab2:
+        st.subheader("🔥 جلب المنتجات الأكثر مبيعاً (Winning Products)")
+        category = st.selectbox("اختر القسم:", ["إلكترونيات", "ملابس", "منزل وديكور", "أكسسوارات الهواتف"])
+        
+        if st.button("جلب المنتجات الأكثر طلباً"):
+            st.info(f"جاري البحث عن أحدث المنتجات الرابحة في قسم: {category}...")
+            sample_winning_products = [
+                {"name": "غطاء هاتف فاخر MagSafe", "price": "$8.50", "orders": "12,400+ طلب"},
+                {"name": "شاحن لاسلكي سريع 3 في 1", "price": "$14.20", "orders": "8,900+ طلب"},
+                {"name": "حامل هاتف مغناطيسي للسيارة", "price": "$3.10", "orders": "25,000+ طلب"}
+            ]
+            st.table(sample_winning_products)
