@@ -213,14 +213,21 @@ elif page == "الشحن":
 elif page == "عرض المنتجات":
     st.header("📦 المنتجات المحفوظة في متجرك")
     
-    # جلب المنتجات مرتبة من الأحدث إلى الأقدم
+    # زر مسح كافة المنتجات
+    if st.button("🗑️ حذف جميع المنتجات المحفوظة", type="primary"):
+        try:
+            supabase.table("products").delete().neq("id", 0).execute()
+            st.success("تم حذف جميع المنتجات بنجاح!")
+            st.rerun()
+        except Exception as e:
+            st.error(f"حدث خطأ أثناء الحذف: {e}")
+
+    # جلب المنتجات وعرضها
     response = supabase.table("products").select("*").order("created_at", desc=True).execute()
     
     if response.data:
         for prod in response.data:
             col1, col2 = st.columns([1, 4])
-            
-            # محاولة قراءة رابط الصورة من كلا العمودين image أو image_url
             img_url = prod.get("image") or prod.get("image_url")
             
             with col1:
@@ -230,7 +237,7 @@ elif page == "عرض المنتجات":
                     st.write("📷 لا توجد صورة")
             with col2:
                 st.subheader(prod.get("name", "منتج بدون اسم"))
-                st.write(f"سعر المورد: **${prod.get('supplier_price', 0)}** | الشحن: **${prod.get('shipping_cost', 0)}** | سعر البيع: **${prod.get('final_price', 0)}** | صافي الربح: **${prod.get('net_profit', 0)}**")
+                st.write(f"سعر المورد: **${prod.get('supplier_price', 0)}** | سعر البيع: **${prod.get('final_price', 0)}** | صافي الربح: **${prod.get('net_profit', 0)}**")
             st.divider()
     else:
         st.info("لا توجد منتجات محفوظة بعد.")
