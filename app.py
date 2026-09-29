@@ -201,13 +201,6 @@ elif page == "الوصف":
         st.markdown(sample_description)
 
 # -----------------------------
-# 🚚 صفحة الشحن المباشر
-# -----------------------------
-elif page == "الشحن":
-    st.header("🚚 ملاحظة الشحن المباشر (Blind Dropshipping)")
-    st.info("We are dropshipping. Do not include any invoices, promo materials, or brand logos in the package.")
-
-# -----------------------------
 # 📦 صفحة عرض المنتجات
 # -----------------------------
 elif page == "عرض المنتجات":
@@ -222,25 +215,36 @@ elif page == "عرض المنتجات":
         except Exception as e:
             st.error(f"حدث خطأ أثناء الحذف: {e}")
 
-    # جلب المنتجات وعرضها
-    response = supabase.table("products").select("*").order("created_at", desc=True).execute()
-    
-    if response.data:
-        for prod in response.data:
-            col1, col2 = st.columns([1, 4])
-            img_url = prod.get("image") or prod.get("image_url")
-            
-            with col1:
-                if img_url:
-                    st.image(img_url, width=110)
-                else:
-                    st.write("📷 لا توجد صورة")
-            with col2:
-                st.subheader(prod.get("name", "منتج بدون اسم"))
-                st.write(f"سعر المورد: **${prod.get('supplier_price', 0)}** | سعر البيع: **${prod.get('final_price', 0)}** | صافي الربح: **${prod.get('net_profit', 0)}**")
-            st.divider()
-    else:
-        st.info("لا توجد منتجات محفوظة بعد.")
+    st.divider()
+
+    try:
+        # جلب المنتجات من القاعدة
+        response = supabase.table("products").select("*").execute()
+        
+        if response.data and len(response.data) > 0:
+            st.success(لدينا {len(response.data)} منتج محفوظ في المتجر:)
+            for prod in response.data:
+                col1, col2 = st.columns([1, 4])
+                
+                # جلب الصورة من الحقلين المحتملين
+                img_url = prod.get("image") or prod.get("image_url")
+                
+                with col1:
+                    if img_url:
+                        st.image(str(img_url), width=110)
+                    else:
+                        st.write("📷 لا توجد صورة")
+                with col2:
+                    st.subheader(prod.get("name", "منتج بدون اسم"))
+                    supp_p = prod.get('supplier_price', 0)
+                    final_p = prod.get('final_price', 0)
+                    profit = prod.get('net_profit', 0)
+                    st.write(f"سعر المورد: **${supp_p}** | سعر البيع: **${final_p}** | صافي الربح: **${profit}**")
+                st.divider()
+        else:
+            st.info("لا توجد منتجات محفوظة بعد. يجدر بك إضافة بعض المنتجات من صفحة 'إضافة منتج تلقائي'.")
+    except Exception as e:
+        st.error(f"حدث خطأ أثناء جلب المنتجات من قاعدة البيانات: {e}")
 
 # -----------------------------
 # 📬 صفحة الطلبات
