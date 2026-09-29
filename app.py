@@ -222,7 +222,7 @@ elif page == "عرض المنتجات":
         response = supabase.table("products").select("*").execute()
         
         if response.data and len(response.data) > 0:
-            st.success(لدينا {len(response.data)} منتج محفوظ في المتجر:)
+            st.success(f"لدينا {len(response.data)} منتج محفوظ في المتجر:")
             for prod in response.data:
                 col1, col2 = st.columns([1, 4])
                 
