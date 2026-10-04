@@ -2,33 +2,42 @@ import streamlit as st
 from supabase import create_client, Client
 import datetime
 
-# -----------------------------
+# ----------------------------- #
 # 🎨 إعدادات وتصميم المتجر (Ibox Store)
-# -----------------------------
+# ----------------------------- #
 st.set_page_config(page_title="Ibox Store", page_icon="🛍️", layout="wide")
+
 st.markdown("""
-    <style>
-    .main { background-color: #f7f9fc; }
-    .stButton>button { background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 8px; font-size: 16px; }
-    </style>
+<style>
+.main {
+    background-color: #f7f9fc;
+}
+.stButton>button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+}
+</style>
 """, unsafe_allow_html=True)
 
-# -----------------------------
+# ----------------------------- #
 # 🔗 إعداد قاعدة بيانات Supabase
-# -----------------------------
+# ----------------------------- #
 url: str = st.secrets["supabase_url"]
 key: str = st.secrets["supabase_key"]
 supabase: Client = create_client(url, key)
 
-# -----------------------------
+# ----------------------------- #
 # 📂 القائمة الجانبية للتنقل
-# -----------------------------
+# ----------------------------- #
 st.sidebar.title("🛍️ لوحة تحكم متجر Ibox")
-page = st.sidebar.selectbox("اختر الصفحة", ["عرض المنتجات", "إضافة منتج تلقائي", "الإعدادات"])
+page = st.sidebar.selectbox("اختر الصفحة", ["عرض المنتجات", "إضافة منتج تلقائي", "إدارة الطلبات", "الإعدادات"])
 
-# -----------------------------
+# ----------------------------- #
 # 📦 صفحة عرض المنتجات المحفوظة
-# -----------------------------
+# ----------------------------- #
 if page == "عرض المنتجات":
     st.header("📦 المنتجات المحفوظة في متجر Ibox")
     
@@ -40,9 +49,9 @@ if page == "عرض المنتجات":
             st.rerun()
         except Exception as e:
             st.error(f"خطأ أثناء الحذف: {e}")
-
+            
     st.divider()
-
+    
     try:
         response = supabase.table("products").select("*").execute()
         if response.data and len(response.data) > 0:
@@ -50,7 +59,6 @@ if page == "عرض المنتجات":
             for prod in response.data:
                 col1, col2 = st.columns([1, 4])
                 img_url = prod.get("image") or prod.get("image_url")
-                
                 with col1:
                     if img_url:
                         st.image(str(img_url), width=110)
@@ -65,9 +73,9 @@ if page == "عرض المنتجات":
     except Exception as e:
         st.error(f"خطأ في جلب المنتجات: {e}")
 
-# -----------------------------
+# ----------------------------- #
 # ⚡ صفحة سحب المنتجات التلقائية
-# -----------------------------
+# ----------------------------- #
 elif page == "إضافة منتج تلقائي":
     st.header("⚡ نظام السحب التلقائي للمنتجات الأكثر طلباً ومبيعاً")
     st.caption("جلب منتجات جاهزة للبيع بالصور والأسعار وحساب الأرباح من كبرى منصات الموردين (AliExpress, Temu, Alibaba)")
@@ -101,13 +109,12 @@ elif page == "إضافة منتج تلقائي":
         
         for item in items:
             col_img, col_info, col_calc, col_act = st.columns([1, 2, 2, 1])
-            
             supp = item["supplier_price"]
             ship = item["shipping"]
             total_cost = supp + ship
             final_price = round(total_cost * 2.2, 2)
             net_profit = round(final_price - total_cost, 2)
-
+            
             with col_img:
                 st.image(item["image"], width=90)
             with col_info:
@@ -135,9 +142,26 @@ elif page == "إضافة منتج تلقائي":
                         st.error(f"خطأ في التنزيل: {e}")
             st.divider()
 
-# -----------------------------
+# ----------------------------- #
+# 📋 صفحة إدارة الطلبات
+# ----------------------------- #
+elif page == "إدارة الطلبات":
+    st.header("📋 سجل طلبات العملاء")
+    try:
+        response = supabase.table("orders").select("*").execute()
+        if response.data and len(response.data) > 0:
+            st.success(f"لديك {len(response.data)} طلب مسجل:")
+            for order in response.data:
+                st.write(f"**العميل:** {order.get('customer_name')} | **المنتج:** {order.get('product_name')} | **السعر:** ${order.get('total_price')} | **الحالة:** {order.get('status')}")
+                st.divider()
+        else:
+            st.info("لا توجد طلبات جديدة مسجلة حتى الآن.")
+    except Exception as e:
+        st.error(f"خطأ في جلب الطلبات (تأكد من إنشاء جدول orders في Supabase): {e}")
+
+# ----------------------------- #
 # ⚙️ إعدادات المتجر
-# -----------------------------
+# ----------------------------- #
 elif page == "الإعدادات":
     st.header("⚙️ إعدادات متجر Ibox")
     store_name = st.text_input("اسم المتجر:", value="Ibox Store")
