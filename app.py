@@ -58,27 +58,16 @@ if page == "عرض المنتجات":
     st.divider()
     
     try:
-        response = supabase.table("products").select("*").execute()
-        if response.data and len(response.data) > 0:
-            st.success(f"لديك {len(response.data)} منتج جاهز ومعروض في متجرك:")
-            for prod in response.data:
-                col1, col2 = st.columns([1, 4])
-                img_url = prod.get("image") or prod.get("image_url")
-                curr = st.session_state.currency
-                with col1:
-                    if img_url:
-                        st.image(str(img_url), width=110)
-                    else:
-                        st.write("📷 لا توجد صورة")
-                with col2:
-                    st.subheader(prod.get("name", "منتج بدون اسم"))
-                    st.write(f"سعر المورد: **{prod.get('supplier_price', 0)} {curr}** | تكلفة الشحن: **{prod.get('shipping_cost', 0)} {curr}** | سعر البيع: **{prod.get('final_price', 0)} {curr}** | صافي الربح: **{prod.get('net_profit', 0)} {curr}**")
-                st.divider()
-        else:
-            st.info("متجرك فارغ حالياً. اذهب إلى صفحة 'إضافة منتج تلقائي' لجلب أحدث المنتجات الرابحة.")
-    except Exception as e:
-        st.error(f"خطأ في جلب المنتجات: {e}")
-
+    supabase.table("products").insert({
+    "name": item["name"],
+    "supplier_price": supp,
+    "shipping_cost": ship,
+    "profit_margin": 120.0,
+    "final_price": custom_final_price,
+    "net_profit": custom_net_profit,
+    "image_url": item["image"],  # تم تعديلها لتطابق العمود في قاعدة البيانات
+    "created_at": datetime.datetime.utcnow().isoformat()
+}).execute()
 # ----------------------------- #
 # ⚡ صفحة سحب المنتجات التلقائية مع تعديل الأسعار
 # ----------------------------- #
