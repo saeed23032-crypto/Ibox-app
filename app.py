@@ -3,9 +3,9 @@ from supabase import create_client
 import stripe
 import datetime
 
-# إعداد الاتصال بقاعدة بيانات Supabase من الأسرار
-SUPABASE_URL = st.secrets["supabase"]["url"]
-SUPABASE_KEY = st.secrets["supabase"]["key"]
+# إعداد الاتصال بقاعدة بيانات Supabase مباشرة من البيانات المعطاة
+SUPABASE_URL = "https://uphbhmbofjplukhunnre.supabase.co"
+SUPABASE_KEY = "sb_publishable_XxOgfPF5aihujk6j82oJWA_NGO_6G6n"
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # إعداد العملة الافتراضية
