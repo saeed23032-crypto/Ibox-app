@@ -3,3 +3,5 @@ supabase
 requests
 beautifulsoup4
 playwright
+stripe
+supabase
