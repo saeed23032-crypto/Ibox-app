@@ -63,7 +63,7 @@ if page == "عرض المنتجات":
             st.success(f"لديك {len(response.data)} منتج جاهز ومعروض في متجرك:")
             for prod in response.data:
                 col1, col2 = st.columns([1, 4])
-                img_url = prod.get("image")
+                img_url = prod.get("image_url")
                 curr = st.session_state.currency
                 with col1:
                     if img_url:
@@ -143,7 +143,7 @@ elif page == "إضافة منتج تلقائي":
                         "profit_margin": 120.0,
                         "final_price": custom_final_price,
                         "net_profit": custom_net_profit,
-                        "image": item["image"],
+                        "image_url": item["image"],
                         "created_at": datetime.datetime.utcnow().isoformat()
                     }).execute()
                     st.success("تم الحفظ بنجاح!")
